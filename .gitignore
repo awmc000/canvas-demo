@@ -39,3 +39,19 @@
 
 # debug information files
 *.dwo
+
+# CMake build artifacts
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Ninja build artifacts
+build.ninja
+.ninja_deps
+.ninja_log
+
+# CLion and other IDE-generated CMake output
+cmake-build-*/
+CMakeUserPresets.json
+CMakePresets.json
