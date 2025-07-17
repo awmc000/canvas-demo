@@ -123,6 +123,20 @@ void handleInput() {
     if (IsKeyDown(KEY_S)) vp.y++;
     if (IsKeyDown(KEY_A) && vp.x > 0) vp.x--;
     if (IsKeyDown(KEY_D)) vp.x++;
+
+    // Set drag point when LMB is pressed
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        mouseDragPoint = GetMousePosition();
+    }
+
+    // Move viewport relative to drag point while LMB is down (TODO: and moving!)
+    Vector2 cursorPosition = GetMousePosition();
+    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        if (cursorPosition.y > mouseDragPoint.y && vp.y > 0) vp.y--;
+        if (cursorPosition.y < mouseDragPoint.y) vp.y++;
+        if (cursorPosition.x > mouseDragPoint.x && vp.x > 0) vp.x--;
+        if (cursorPosition.x < mouseDragPoint.x) vp.x++;
+    }
 }
 
 void drawObjects() {
@@ -171,6 +185,7 @@ void gameLoop() {
     #endif
     DrawText(TextFormat("Static file content: %s", someResource), 0, 60, 20, BLACK);
     DrawText(TextFormat("(%d, %d)", vp.y, vp.x), 100, 0, 20, BLACK);
+    DrawText(TextFormat("(%f, %f)", mouseDragPoint.y, mouseDragPoint.x), 100, 100, 20, BLACK);
     EndDrawing();
 }
 
