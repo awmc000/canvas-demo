@@ -15,10 +15,27 @@
 #include <rcamera.h>
 #include <time.h>
 #ifdef __EMSCRIPTEN__
-#include <emscripten.h>
+    #include <emscripten.h>
 #endif
+
+/*****************************************************************************
+ * Macros and Constants
+ *****************************************************************************/
 #define LOG(X) printf("%s: %d", __FILE__, __LINE__, X)
+#define BORDER_MARGIN 10
+
+/*****************************************************************************
+ * Global Variables
+ *****************************************************************************/
 RenderTexture rt;
+struct {
+    int y;
+    int x;
+    int w;
+    int h;
+} viewport;
+
+const char* someResource = 0;
 
 #ifdef __EMSCRIPTEN__
     EM_JS(void, idbfs_put, (const char* filename, const char* str), {
@@ -37,14 +54,73 @@ RenderTexture rt;
         return stringOnWasmHeap;
     });
 #endif
-const char* someResource = 0;
 
+/**
+ * Converts a Position Y coordinate to a screen Y coordinate.
+*/
+int clampProjectY(int positionY) {
+    // Case: positionY is above the screen => clamp to top border
+    if (positionY < viewport.y) {
+        return GetScreenHeight() - BORDER_MARGIN;
+    }
+    // Case: positionY is below the screen => clamp to bottom border
+    else if (positionY > viewport.y + viewport.h) {
+        return BORDER_MARGIN;
+    }
+    // Case: positionY is on screen
+    else {
+        return GetScreenHeight() - (positionY - viewport.y);
+    }
+}
+
+/**
+ * Converts a Position X coordinate to a screen X coordinate.
+*/
+int clampProjectX(int positionX) {
+    // Case: positionX is left of the screen => clamp to left border
+    if (positionX < viewport.x) {
+        return BORDER_MARGIN;
+    }
+    // Case: positionX is right of the screen => clamp to right border
+    else if (positionX > viewport.x + viewport.w) {
+        return viewport.x + viewport.w - BORDER_MARGIN;
+    }
+    // Case: positionX is on screen
+    else {
+        return positionX - viewport.x;
+    }
+}
 
 void gameLoop() {
+
+    // Input handling
+    if (IsKeyDown(KEY_W) && viewport.y > 0) viewport.y--;
+    if (IsKeyDown(KEY_S)) viewport.y++;
+    if (IsKeyDown(KEY_A) && viewport.x > 0) viewport.x--;
+    if (IsKeyDown(KEY_D)) viewport.x++;
+
+    // Drawing to render texture
     BeginDrawing();
     BeginTextureMode(rt);
     ClearBackground(CLITERAL(Color){255, 255, 255, 255});
-    DrawCircle(GetMouseX(), GetScreenHeight() - GetMouseY(), 50, CLITERAL(Color){0,0,0,255});
+    // DrawCircle(
+    //     GetMouseX(), 
+    //     GetScreenHeight() - GetMouseY(), 
+    //     50, 
+    //     CLITERAL(Color){0,0,0,255}
+    // );
+    DrawCircle(
+        clampProjectX(50), 
+        clampProjectY(100), 
+        10, 
+        CLITERAL(Color){10,10,200,255}
+    );
+    DrawCircle(
+        clampProjectX(1000), 
+        clampProjectY(1000), 
+        10, 
+        CLITERAL(Color){200,10,20,255}
+    );
     EndTextureMode();
     DrawTexture(rt.texture, 0, 0, CLITERAL(Color){255,255,255,255});
     DrawFPS(0, 0);
@@ -52,14 +128,20 @@ void gameLoop() {
         char* text = idbfs_get("file.txt");
         DrawText(TextFormat("Dynamic file content: %s", text), 0, 30, 20, WHITE);
     #endif
-    DrawText(TextFormat("Static file content: %s", someResource), 0, 60, 20, WHITE);
+    DrawText(TextFormat("Static file content: %s", someResource), 0, 60, 20, BLACK);
+    DrawText(TextFormat("(%d, %d)", viewport.y, viewport.x), 100, 0, 20, BLACK);
     EndDrawing();
 }
 
 int main() {
     int screenWidth = 960;
     int screenHeight = 480;
-    
+
+    viewport.y = 500;
+    viewport.x = 500;
+    viewport.w = screenWidth;
+    viewport.h = screenHeight;
+
     InitWindow(screenWidth, screenHeight, "rtextures");
     SetTargetFPS(144);
     rt = LoadRenderTexture(screenWidth, screenHeight);
