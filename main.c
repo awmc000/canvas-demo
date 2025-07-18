@@ -23,6 +23,7 @@
  *****************************************************************************/
 #define LOG(X) printf("%s: %d", __FILE__, __LINE__, X)
 #define BORDER_MARGIN 10
+#define MOUSE_ACTIVE_CLOCK_TICKS 15
 
 /*****************************************************************************
  * Structs and Typedefs
@@ -62,7 +63,13 @@ RenderTexture rt;
 struct viewport vp;
 
 const char* someResource = 0;
+
+// Mouse drag stuff
 Vector2 mouseDragPoint;
+Vector2 mouseOffset;
+clock_t lastMouseActivity;
+clock_t currentTime;
+int mouseMoving = 0;
 
 #ifdef __EMSCRIPTEN__
     EM_JS(void, idbfs_put, (const char* filename, const char* str), {
@@ -129,23 +136,20 @@ void handleInput() {
         mouseDragPoint = GetMousePosition();
     }
 
-    // Move viewport relative to drag point while LMB is down (TODO: and moving!)
-    Vector2 cursorPosition = GetMousePosition();
+    // Move viewport relative to drag point while LMB is down and moving
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        mouseDragPoint = GetMousePosition();
+        mouseOffset.y = vp.y;
+        mouseOffset.x = vp.x;
+    }
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-        if (cursorPosition.y > mouseDragPoint.y && vp.y > 0) vp.y--;
-        if (cursorPosition.y < mouseDragPoint.y) vp.y++;
-        if (cursorPosition.x > mouseDragPoint.x && vp.x > 0) vp.x--;
-        if (cursorPosition.x < mouseDragPoint.x) vp.x++;
+        lastMouseActivity = clock() / (1000);
+        vp.x = (mouseOffset.x - GetMouseX() + mouseDragPoint.x);
+        vp.y = (mouseOffset.y - GetMouseY() + mouseDragPoint.y);
     }
 }
 
 void drawObjects() {
-    // DrawCircle(
-    //     GetMouseX(), 
-    //     GetScreenHeight() - GetMouseY(), 
-    //     50, 
-    //     CLITERAL(Color){0,0,0,255}
-    // );
     DrawCircle(
         clampProjectX(50), 
         clampProjectY(100), 
@@ -169,6 +173,9 @@ void drawObjects() {
 
 void gameLoop() {
 
+    currentTime = clock() / (1000);
+    mouseMoving = currentTime - lastMouseActivity < MOUSE_ACTIVE_CLOCK_TICKS;
+
     handleInput();
 
     // Drawing to render texture
@@ -186,6 +193,9 @@ void gameLoop() {
     DrawText(TextFormat("Static file content: %s", someResource), 0, 60, 20, BLACK);
     DrawText(TextFormat("(%d, %d)", vp.y, vp.x), 100, 0, 20, BLACK);
     DrawText(TextFormat("(%f, %f)", mouseDragPoint.y, mouseDragPoint.x), 100, 100, 20, BLACK);
+    DrawText(TextFormat("lma: %d curr: %d", lastMouseActivity, currentTime), 100, 120, 20, BLACK);
+    if (mouseMoving)
+        DrawText("Mouse moving", 300, 20, 20, BLUE);
     EndDrawing();
 }
 
