@@ -25,6 +25,7 @@
 #define BORDER_MARGIN 10
 #define MOUSE_ACTIVE_CLOCK_TICKS 15
 #define MAX_OBJECTS 256
+#define MINOR_GRIDLINE_DISTANCE 100
 
 /*****************************************************************************
  * Structs and Typedefs
@@ -57,6 +58,9 @@ struct object {
     // TODO: Generalize to more than circles!
     // Circle radius.
     int radius;
+
+    // Line destination
+    int destY, destX;
 
     // TODO: Implement textures, etc.
     Color color;
@@ -110,6 +114,16 @@ int createObject(struct object newObj) {
     objs[objsLen] = newObj;
     objsLen++;
     return objsLen - 1;
+}
+
+/**
+ * Returns 1 if the given world position is visible
+ * in the current viewport. 
+*/
+int positionVisible(int y, int x) {
+    int yInRange = y >= 0 && y <= vp.y + vp.h;
+    int xInRange = x >= 0 && x <= vp.x + vp.w;
+    return yInRange && xInRange;
 }
 
 /**
@@ -191,13 +205,18 @@ void drawObjects() {
                 Vector2 pos;
                 pos.x = clampProjectX(curr.x, curr.sticky); 
                 pos.y = clampProjectY(curr.y, curr.sticky); 
-                DrawTextureEx(
-                    skull,
-                    pos,
-                    180.0,
-                    1.0,
-                    curr.color
-                );
+                DrawTextureEx(skull, pos, 180.0, 1.0, curr.color);
+                break;
+            case LINE:
+                if (positionVisible(curr.destY, curr.destX)) {
+                    DrawLine(
+                        clampProjectX(curr.x, curr.sticky), 
+                        clampProjectY(curr.y, curr.sticky), 
+                        clampProjectX(curr.destX, 0), 
+                        clampProjectY(curr.destY, 0), 
+                        curr.color
+                    );
+                }
                 break;
         }
 
@@ -222,6 +241,36 @@ void drawLabels() {
 
 }
 
+void drawGridlines() {
+    int offsetX = vp.x % MINOR_GRIDLINE_DISTANCE;
+    int offsetY = vp.y % MINOR_GRIDLINE_DISTANCE;
+
+    const int shade = 220;
+
+    // Vertical lines
+    for (int i = 0; i < vp.w / 10; i++) {
+        DrawLine(
+            i * MINOR_GRIDLINE_DISTANCE - offsetX, 
+            0, 
+            i * MINOR_GRIDLINE_DISTANCE - offsetX, 
+            vp.h, 
+            CLITERAL(Color){shade, shade, shade, 255}
+        );
+    }
+
+    // FIXME: why do the horizontal lines appear to slide around
+    // Horizontal lines
+    for (int i = 0; i < vp.h / 10; i++) {
+        DrawLine(
+            0, 
+            i * MINOR_GRIDLINE_DISTANCE + offsetY, 
+            vp.w, 
+            i * MINOR_GRIDLINE_DISTANCE + offsetY, 
+            CLITERAL(Color){shade, shade, shade, 255});
+    }
+
+}
+
 void gameLoop() {
 
     currentTime = clock() / (1000);
@@ -233,6 +282,7 @@ void gameLoop() {
     BeginDrawing();
     BeginTextureMode(rt);
     ClearBackground(CLITERAL(Color){255, 255, 255, 255});
+    drawGridlines();
     drawObjects();
     EndTextureMode();
     DrawTexture(rt.texture, 0, 0, CLITERAL(Color){255,255,255,255});
@@ -287,10 +337,22 @@ int main() {
     }; 
     createObject(dot2);
 
+    struct object line = {
+        .type = LINE,
+        .sticky = 0,
+        .label = "line",
+        .y = 100,
+        .x = 100,
+        .destY = 150,
+        .destX = 90,
+        .color = BLACK
+    };
+    createObject(line);
+
     struct object skullObj = {
         .type = SPRITE,
         .sticky = 0,
-        .label = "EVIL SKULL",
+        .label = "Evil skull",
         .color = BLACK,
         .y = 200,
         .x = 300
