@@ -15,6 +15,7 @@
 #include <rcamera.h>
 #include <time.h>
 #include <stdlib.h>
+#include <math.h>
 #ifdef __EMSCRIPTEN__
     #include <emscripten.h>
 #endif
@@ -23,10 +24,13 @@
  * Macros and Constants
  *****************************************************************************/
 #define LOG(X) printf("%s: %d", __FILE__, __LINE__, X)
-#define BORDER_MARGIN 10
-#define MOUSE_ACTIVE_CLOCK_TICKS 15
-#define MAX_OBJECTS 256
-#define MINOR_GRIDLINE_DISTANCE 100
+#define BORDER_MARGIN               10
+#define MOUSE_ACTIVE_CLOCK_TICKS    15
+#define MAX_OBJECTS                 256
+#define MINOR_GRIDLINE_DISTANCE     100
+#define COLLISION_MARGIN_PX         2
+#define TRUE                        1
+#define FALSE                       0
 
 /*****************************************************************************
  * Structs and Typedefs
@@ -79,8 +83,10 @@ struct viewport vp;
 
 const char* someResource = 0;
 
-// The point clicked to drag the viewport.
+// Objects can be dragged and so can the viewport itself.
+// In either case, the starting point should be saved for calculations.
 Vector2 mouseDragPoint;
+Vector2 objectDragPoint;
 Vector2 dragViewportFrom;
 clock_t lastMouseActivity;
 clock_t currentTime;
@@ -88,6 +94,7 @@ int mouseMoving = 0;
 
 // Objects array
 struct object objs[MAX_OBJECTS];
+struct object * recentlyGrabbedObject;
 int objsLen = 0;
 
 #ifdef __EMSCRIPTEN__
@@ -163,6 +170,40 @@ int clampProjectX(int positionX, int clamp) {
     }
 }
 
+int collidingWithPoint() {
+    int my = GetMouseY();
+    int mx = GetMouseX();
+    
+    // Object y, x
+    int oy;
+    int ox;
+    
+    // y and x distance
+    int yDelta;
+    int xDelta;
+    int distance;
+
+    for (int i = 0; i < objsLen; i++) {
+        // Adjust object coordinates for viewport
+        oy = vp.h - clampProjectY(objs[i].y, 0);
+        ox = clampProjectX(objs[i].x, 0);
+        yDelta = abs(oy - my);
+        xDelta = abs(ox - mx);
+
+        // Calculate straight line distance with pythagorean theorem:
+        // Is it less than the radius of the object?
+        distance = sqrt( (yDelta*yDelta) + (xDelta*xDelta) );
+
+        // Check if within that distance allowing a certain margin of error
+        if (distance < (objs[i].radius + COLLISION_MARGIN_PX)) {
+            recentlyGrabbedObject = &objs[i];
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
 void handleInput() {
     if (IsKeyDown(KEY_W) && vp.y > 0) vp.y--;
     if (IsKeyDown(KEY_S)) vp.y++;
@@ -171,7 +212,11 @@ void handleInput() {
 
     // Set drag point when LMB is pressed
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        mouseDragPoint = GetMousePosition();
+        if (collidingWithPoint()) {
+            // TODO: any other drag behaviour
+        } else {
+            mouseDragPoint = GetMousePosition();
+        }
     }
 
     if (IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE)) {
@@ -312,6 +357,14 @@ void gameLoop() {
     DrawText(TextFormat("viewport: (%d, %d); %d objects", vp.y, vp.x, objsLen), 0, 20, 20, BLACK);
     DrawText(TextFormat("drag pt: (%f, %f)", mouseDragPoint.y, mouseDragPoint.x), 0, 40, 20, BLACK);
     DrawText(TextFormat("mouse last moving: %d curr time: %d", lastMouseActivity, currentTime), 0, 60, 20, BLACK);
+    DrawText(
+        TextFormat("Object last touched: %s at y,x (%d,%d)", 
+            recentlyGrabbedObject == NULL ? "null" : (*recentlyGrabbedObject).label,
+            recentlyGrabbedObject == NULL ? -1 : (*recentlyGrabbedObject).y,
+            recentlyGrabbedObject == NULL ? -1 : (*recentlyGrabbedObject).x
+        ), 
+        0, 80, 20, BLACK
+    );
     drawLabels();
     if (mouseMoving)
         DrawText("Mouse moving", 300, 20, 20, BLUE);

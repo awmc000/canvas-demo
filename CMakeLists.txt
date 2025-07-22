@@ -27,6 +27,11 @@ add_executable(main "main.c")
 target_link_libraries(main 
     raylib
 )
+
+# Link math to main
+target_link_libraries(main m)
+
+
 # Make main find the <raylib.h> header (and others)
 target_include_directories(main PUBLIC "${raylib_SOURCE_DIR}/src")
 
