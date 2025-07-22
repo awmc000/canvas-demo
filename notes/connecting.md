@@ -1,4 +1,4 @@
-# Thoughts on connecting nodes
+# Thoughts on dragging and connecting nodes
 
 - Need a way to find the nearest element when we click the viewport.
     - So that we can determine whether or not we are dragging an element:
@@ -9,3 +9,7 @@
 - OK, it should not be a quad tree, even though that is a really cool sounding data structure, damn.
 - I will implement brute force for now.
 - After that, it could be really intuitive to use the same grid cells in a spatial hash grid.
+- But with < 50 nodes it might not even be worth it, lol.
+- Next is to implement the node dragging while mouse is down.
+- Should possibly track whether we're dragging viewport or an object with another global.
+- Then on to the behaviour of connecting nodes with lines.

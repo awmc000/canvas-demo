@@ -41,12 +41,18 @@ struct viewport {
     int x;
     int w;
     int h;
+    float scale; // TODO: implement zoom, which will require scaling all drawn objects
 };
 
 enum objectType {
     DOT,
     LINE,
     SPRITE
+};
+
+enum dragState {
+    VIEWPORT,
+    OBJECT
 };
 
 struct object {
@@ -86,11 +92,12 @@ const char* someResource = 0;
 // Objects can be dragged and so can the viewport itself.
 // In either case, the starting point should be saved for calculations.
 Vector2 mouseDragPoint;
-Vector2 objectDragPoint;
 Vector2 dragViewportFrom;
+Vector2 dragObjectFrom;
 clock_t lastMouseActivity;
 clock_t currentTime;
 int mouseMoving = 0;
+enum dragState ds;
 
 // Objects array
 struct object objs[MAX_OBJECTS];
@@ -170,6 +177,10 @@ int clampProjectX(int positionX, int clamp) {
     }
 }
 
+/**
+ * Determines if the mouse is colliding with an object.
+ * Sets the recentlyGrabbedObject as a side effect if it is.
+*/
 int collidingWithPoint() {
     int my = GetMouseY();
     int mx = GetMouseX();
@@ -214,9 +225,11 @@ void handleInput() {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         if (collidingWithPoint()) {
             // TODO: any other drag behaviour
+            ds = OBJECT;
         } else {
-            mouseDragPoint = GetMousePosition();
+            ds = VIEWPORT;
         }
+        mouseDragPoint = GetMousePosition();
     }
 
     if (IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE)) {
@@ -237,15 +250,33 @@ void handleInput() {
 
 
     // Move viewport relative to drag point while LMB is down and moving
+    // TODO: Check if we are dragging the viewport or an object
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         mouseDragPoint = GetMousePosition();
-        dragViewportFrom.y = vp.y;
-        dragViewportFrom.x = vp.x;
+        switch (ds) {
+            case VIEWPORT:
+                dragViewportFrom.y = vp.y;
+                dragViewportFrom.x = vp.x;
+                break;
+            case OBJECT:
+                dragObjectFrom.y = recentlyGrabbedObject->y;
+                dragObjectFrom.x = recentlyGrabbedObject->x;
+                break;
+        }
     }
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
         lastMouseActivity = clock() / (1000);
-        vp.x = (dragViewportFrom.x - GetMouseX() + mouseDragPoint.x);
-        vp.y = (dragViewportFrom.y - GetMouseY() + mouseDragPoint.y);
+        switch (ds) {
+            case VIEWPORT:
+                vp.x = (dragViewportFrom.x - GetMouseX() + mouseDragPoint.x);
+                vp.y = (dragViewportFrom.y - GetMouseY() + mouseDragPoint.y);
+                break;
+            case OBJECT:
+                recentlyGrabbedObject->x = (dragObjectFrom.x + GetMouseX() - mouseDragPoint.x);
+                recentlyGrabbedObject->y = (dragObjectFrom.y + GetMouseY() - mouseDragPoint.y);
+                break;
+        }
+
     }
 }
 
