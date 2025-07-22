@@ -64,7 +64,7 @@ struct object {
     int sticky: 1;
 
     // A label that can be drawn next to this object
-    const char * label;
+    char * label;
 
     // TODO: Generalize to more than circles!
     // Circle radius.
@@ -449,7 +449,7 @@ int main() {
     #endif
 
     for (int i = 0; i < objsLen; i++) {
-        // free(objs[i].label);
+        free(objs[i].label);
     }
 
     return 0;
