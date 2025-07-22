@@ -99,6 +99,14 @@ clock_t currentTime;
 int mouseMoving = 0;
 enum dragState ds;
 
+// Objects can be connected by right clicking one object and then the other.
+// Right clicking where there is not an object will clear both places.
+struct object * connectionSource;
+struct object * connectionDestination;
+
+// 0 if selecting Source; 1 if selecting Destination.
+int connectionSelected = 0;
+
 // Objects array
 struct object objs[MAX_OBJECTS];
 struct object * recentlyGrabbedObject;
@@ -129,6 +137,36 @@ int createObject(struct object newObj) {
     objs[objsLen] = newObj;
     objsLen++;
     return objsLen - 1;
+}
+
+/**
+ * Creates an edge between two nodes and returns its index.
+*/
+int createConnection(struct object * src, struct object * dest) {
+    printf("IMPLEMENT: Create a connection between %s at (%d,%d) and %s at (%d,%d)\n",
+        connectionSource->label, connectionSource->y, connectionSource->y,
+        connectionDestination->label, connectionDestination->y, connectionDestination->y
+    );
+    return -1;
+}
+
+// FIXME: bandaid for wrong order
+int clampProjectX(int positionX, int clamp);
+int clampProjectY(int positionX, int clamp);
+
+/**
+ * Draw a line from source node to cursor. Shows user they're making a 
+ * connection.
+*/
+void drawTempLine(void) {
+    if (connectionSource != NULL && connectionDestination == NULL) {
+        DrawLine(
+            clampProjectX(connectionSource->x, 0), 
+            clampProjectY(connectionSource->y, 0), 
+            GetMouseX(),vp.h - GetMouseY(),
+            BLACK
+        );
+    }
 }
 
 /**
@@ -221,9 +259,13 @@ void handleInput() {
     if (IsKeyDown(KEY_A) && vp.x > 0) vp.x--;
     if (IsKeyDown(KEY_D)) vp.x++;
 
+    // save if we are colliding with a point 
+    // so we don't check again in one input frame
+    int hittingPoint = collidingWithPoint();
+
     // Set drag point when LMB is pressed
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        if (collidingWithPoint()) {
+        if (hittingPoint) {
             // TODO: any other drag behaviour
             ds = OBJECT;
         } else {
@@ -247,12 +289,33 @@ void handleInput() {
         createObject(dot);
     }
 
-
+    if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
+        // Set selected object
+        if (hittingPoint) {
+            if (connectionSelected == 0) {
+                connectionSource = recentlyGrabbedObject;
+            } else if (connectionSelected == 1) {
+                connectionDestination = recentlyGrabbedObject;
+                // Create connection
+                createConnection(connectionSource, connectionDestination);
+                // TODO: Why does this cause a segfault / core dump when triggered?
+                // connectionSource = NULL; 
+                // connectionDestination = NULL;
+                // connectionSelected = 0;
+            }
+            connectionSelected = connectionSelected ^ 1;
+        } else {
+            // Clear selected object
+            connectionSource = NULL; 
+            connectionDestination = NULL;
+            connectionSelected = 0;
+        }
+    }
 
     // Move viewport relative to drag point while LMB is down and moving
-    // TODO: Check if we are dragging the viewport or an object
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         mouseDragPoint = GetMousePosition();
+        // Check if we are dragging the viewport or an object
         switch (ds) {
             case VIEWPORT:
                 dragViewportFrom.y = vp.y;
@@ -378,6 +441,7 @@ void gameLoop() {
     ClearBackground(CLITERAL(Color){255, 255, 255, 255});
     drawGridlines();
     drawObjects();
+    drawTempLine();
     EndTextureMode();
     DrawTexture(rt.texture, 0, 0, CLITERAL(Color){255,255,255,255});
     DrawFPS(0, 0);
@@ -395,6 +459,14 @@ void gameLoop() {
             recentlyGrabbedObject == NULL ? -1 : (*recentlyGrabbedObject).x
         ), 
         0, 80, 20, BLACK
+    );
+    DrawText(
+        TextFormat("Picking: %d Src: %s Dest: %s", 
+            connectionSelected, 
+            connectionSource == NULL ? "null" : connectionSource->label, 
+            connectionDestination == NULL ? "null" : connectionDestination->label
+        ),
+        0, 100, 20, BLACK
     );
     drawLabels();
     if (mouseMoving)
