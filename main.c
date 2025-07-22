@@ -417,6 +417,8 @@ int main() {
     someResource = LoadFileText("resources/dummy.txt");
     skull = LoadTexture("resources/skull-wenrexa.png");
 
+    srand(time(NULL));
+
     struct object skullObj = {
         .type = SPRITE,
         .sticky = 0,
