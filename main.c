@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <rcamera.h>
 #include <time.h>
+#include <stdlib.h>
 #ifdef __EMSCRIPTEN__
     #include <emscripten.h>
 #endif
@@ -173,6 +174,23 @@ void handleInput() {
         mouseDragPoint = GetMousePosition();
     }
 
+    if (IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE)) {
+        char * label = calloc(32, sizeof(char));
+        asprintf(&label, "Object %d", objsLen + 1);
+        struct object dot = {
+            .type = DOT,
+            .sticky = 0,
+            .label= label,
+            .radius = 10,
+            .color = CLITERAL(Color){10 + rand() % 245, 10 + rand() % 245, 10 + rand() % 245, 255},
+            .y = vp.y + GetMouseY(),
+            .x = vp.x + GetMouseX(),
+        }; 
+        createObject(dot);
+    }
+
+
+
     // Move viewport relative to drag point while LMB is down and moving
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         mouseDragPoint = GetMousePosition();
@@ -291,7 +309,7 @@ void gameLoop() {
         char* text = idbfs_get("file.txt");
         DrawText(TextFormat("Dynamic file content: %s", text), 0, 30, 20, WHITE);
     #endif
-    DrawText(TextFormat("viewport: (%d, %d)", vp.y, vp.x), 0, 20, 20, BLACK);
+    DrawText(TextFormat("viewport: (%d, %d); %d objects", vp.y, vp.x, objsLen), 0, 20, 20, BLACK);
     DrawText(TextFormat("drag pt: (%f, %f)", mouseDragPoint.y, mouseDragPoint.x), 0, 40, 20, BLACK);
     DrawText(TextFormat("mouse last moving: %d curr time: %d", lastMouseActivity, currentTime), 0, 60, 20, BLACK);
     drawLabels();
@@ -314,40 +332,6 @@ int main() {
     rt = LoadRenderTexture(screenWidth, screenHeight);
     someResource = LoadFileText("resources/dummy.txt");
     skull = LoadTexture("resources/skull-wenrexa.png");
-
-    struct object dot = {
-        .type = DOT,
-        .sticky = 0,
-        .label="A dot",
-        .radius = 10,
-        .color = BLUE,
-        .y = 100,
-        .x = 100,
-    }; 
-    createObject(dot);
-
-    struct object dot2 = {
-        .type = DOT,
-        .sticky = 1,
-        .label="Dot 2",
-        .radius = 15,
-        .color = RED,
-        .y = 150,
-        .x = 90,
-    }; 
-    createObject(dot2);
-
-    struct object line = {
-        .type = LINE,
-        .sticky = 0,
-        .label = "line",
-        .y = 100,
-        .x = 100,
-        .destY = 150,
-        .destX = 90,
-        .color = BLACK
-    };
-    createObject(line);
 
     struct object skullObj = {
         .type = SPRITE,
@@ -377,5 +361,10 @@ int main() {
             gameLoop();
         }
     #endif
+
+    for (int i = 0; i < objsLen; i++) {
+        // free(objs[i].label);
+    }
+
     return 0;
 }
