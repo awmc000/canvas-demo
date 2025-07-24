@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <ctype.h>
 
 // Third party header includes ------------------------------------------------
 #include <raylib.h>
@@ -40,6 +41,8 @@
 #define COLLISION_MARGIN_PX         2
 #define TRUE                        1
 #define FALSE                       0
+#define DOUBLE_CLICK_PERIOD         100
+#define MAX_LABEL_LENGTH            32
 
 /*****************************************************************************
  * Structs and Typedefs
@@ -105,6 +108,9 @@ struct viewport vp;
 Vector2 mouseDragPoint;
 Vector2 dragViewportFrom;
 Vector2 dragObjectFrom;
+
+// We will infer double click from time passed between last 2 clicks
+clock_t prevMouseActivity;
 clock_t lastMouseActivity;
 clock_t currentTime;
 int mouseMoving = 0;
@@ -128,7 +134,8 @@ struct object * recentlyGrabbedObject;
 
 // UI state
 int overlayState = FALSE;
-char overlayTextInput[64];
+char overlayTextInput[MAX_LABEL_LENGTH + 1];
+int overlayTextIndex = 0;
 
 #ifdef __EMSCRIPTEN__
     EM_JS(void, idbfs_put, (const char* filename, const char* str), {
@@ -231,14 +238,12 @@ int collidingWithPoint() {
  * Input Handling Functions
  *****************************************************************************/
 void setDragPoint(int hittingPoint) {
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        if (hittingPoint) {
-            ds = OBJECT;
-        } else {
-            ds = VIEWPORT;
-        }
-        mouseDragPoint = GetMousePosition();
+    if (hittingPoint) {
+        ds = OBJECT;
+    } else {
+        ds = VIEWPORT;
     }
+    mouseDragPoint = GetMousePosition();
 }
 
 void setDragFromPoint() {
@@ -315,6 +320,17 @@ void selectNodeForConnection(int hittingPoint) {
     }
 }
 
+/**
+ * returns if the most recent click was a double click.
+*/
+int isDoubleClick() {
+    return lastMouseActivity - prevMouseActivity <= DOUBLE_CLICK_PERIOD;
+}
+
+/******************************************************************************
+ * Main input handling function
+ *****************************************************************************/
+
 void handleInput() {
     if (IsKeyDown(KEY_A)) {
         vp.scale -= 0.02;
@@ -328,8 +344,17 @@ void handleInput() {
     int hittingPoint = collidingWithPoint();
 
     // Set drag point when LMB is pressed
-    setDragPoint(hittingPoint);
-    
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        prevMouseActivity = lastMouseActivity;
+        lastMouseActivity = currentTime;
+        if (isDoubleClick()) {
+            if (hittingPoint) {
+                overlayState ^= 1;
+            }
+        }
+        setDragPoint(hittingPoint);
+    }
+
     if (IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE)) {
         createNode();
     }
@@ -343,6 +368,20 @@ void handleInput() {
     }
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
         dragObjects();
+    }
+
+    // Get keys if in input field
+    char ch = GetKeyPressed();
+    if (overlayState == 1 && ch != 0 && isascii(ch)) {
+        if (ch == KEY_BACKSPACE) {
+            // FIXME: doesn't work
+            overlayTextIndex = 0;
+            overlayTextInput[0] = 0;
+        } else {
+            overlayTextInput[overlayTextIndex] = ch;
+            overlayTextIndex = (overlayTextIndex + 1) % MAX_LABEL_LENGTH;
+        }
+        printf("[%s]\n", overlayTextInput);
     }
 }
 
@@ -477,8 +516,8 @@ void printDebugInfo() {
 
     DrawText(
         TextFormat(
-            "mouse last moving: %d curr time: %d",
-            lastMouseActivity, currentTime
+            "mouse prev moving: %d, last: %d, curr time: %d",
+            prevMouseActivity, lastMouseActivity, currentTime
         ),
         0, 60, 20, BLACK
     );
@@ -553,6 +592,8 @@ int main() {
     vp.w = screenWidth;
     vp.h = screenHeight;
     vp.scale = 1.0;
+
+    overlayTextInput[MAX_LABEL_LENGTH] = 0;
 
     InitWindow(screenWidth, screenHeight, "rtextures");
     SetTargetFPS(144);
