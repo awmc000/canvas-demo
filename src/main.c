@@ -100,8 +100,6 @@ RenderTexture rt;
 Texture2D skull;
 struct viewport vp;
 
-const char* someResource = 0;
-
 // Objects can be dragged and so can the viewport itself.
 // In either case, the starting point should be saved for calculations.
 Vector2 mouseDragPoint;
@@ -127,6 +125,10 @@ struct connection cons[MAX_OBJECTS];
 int consLen = 0;
 
 struct object * recentlyGrabbedObject;
+
+// UI state
+int overlayState = FALSE;
+char overlayTextInput[64];
 
 #ifdef __EMSCRIPTEN__
     EM_JS(void, idbfs_put, (const char* filename, const char* str), {
@@ -328,6 +330,10 @@ void handleInput() {
     }
 }
 
+/******************************************************************************
+ * Drawing Functions
+ *****************************************************************************/
+
 void drawObjects() {
     struct object curr;
 
@@ -422,6 +428,10 @@ void drawGridlines() {
 
 }
 
+void drawOverlay() {
+    DrawRectangle(0,0,vp.w,vp.h, CLITERAL(Color){0,0,0,200});
+}
+
 void printDebugInfo() {
     DrawText(
         TextFormat("vp: (%d, %d); %d objects", vp.y, vp.x, objsLen),
@@ -481,6 +491,9 @@ void gameLoop() {
     drawConnections();
     drawObjects();
     drawTempLine();
+    if (overlayState) {
+        drawOverlay();
+    }
     EndTextureMode();
     DrawTexture(rt.texture, 0, 0, CLITERAL(Color){255,255,255,255});
     DrawFPS(0, 0);
@@ -511,7 +524,6 @@ int main() {
     InitWindow(screenWidth, screenHeight, "rtextures");
     SetTargetFPS(144);
     rt = LoadRenderTexture(screenWidth, screenHeight);
-    someResource = LoadFileText("resources/dummy.txt");
     skull = LoadTexture("resources/skull-wenrexa.png");
 
     srand(time(NULL));
