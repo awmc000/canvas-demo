@@ -316,10 +316,12 @@ void selectNodeForConnection(int hittingPoint) {
 }
 
 void handleInput() {
-    if (IsKeyDown(KEY_W) && vp.y > 0) vp.y--;
-    if (IsKeyDown(KEY_S)) vp.y++;
-    if (IsKeyDown(KEY_A) && vp.x > 0) vp.x--;
-    if (IsKeyDown(KEY_D)) vp.x++;
+    if (IsKeyDown(KEY_A)) {
+        vp.scale -= 0.02;
+    }
+    if (IsKeyDown(KEY_Z)) {
+        vp.scale += 0.02;
+    }
 
     // save if we are colliding with a point 
     // so we don't check again in one input frame
@@ -373,7 +375,7 @@ void drawObjects() {
                 DrawCircle(
                     clampProjectX(&vp, curr.x, curr.sticky), 
                     clampProjectY(&vp, curr.y, curr.sticky), 
-                    curr.radius, 
+                    curr.radius * vp.scale, 
                     curr.color
                 );
                 break;
@@ -383,7 +385,7 @@ void drawObjects() {
                 Vector2 pos;
                 pos.x = clampProjectX(&vp, curr.x, curr.sticky); 
                 pos.y = clampProjectY(&vp, curr.y, curr.sticky); 
-                DrawTextureEx(skull, pos, 180.0, 1.0, curr.color);
+                DrawTextureEx(skull, pos, 180.0, vp.scale, curr.color);
                 break;
         }
     }
@@ -415,8 +417,8 @@ void drawLabels() {
         curr = objs[i];
         DrawText(
             curr.label,
-            clampProjectX(&vp, curr.x, curr.sticky) + curr.radius + 5, 
-            vp.h - (clampProjectY(&vp, curr.y, curr.sticky) + curr.radius + 5),
+            clampProjectX(&vp, curr.x, curr.sticky) + (vp.scale * curr.radius) + 5, 
+            vp.h - (clampProjectY(&vp, curr.y, curr.sticky) + (vp.scale * curr.radius) + 5),
             20,
             BLACK
         );
@@ -429,13 +431,14 @@ void drawGridlines() {
     int offsetY = vp.y % MINOR_GRIDLINE_DISTANCE;
 
     const int shade = 190;
+    const int dist = MINOR_GRIDLINE_DISTANCE * vp.scale;
 
     // Vertical lines
     for (int i = 0; i < vp.w / 10; i++) {
         drawDottedLine(
-            i * MINOR_GRIDLINE_DISTANCE - offsetX, 
+            i * dist - offsetX, 
             0, 
-            i * MINOR_GRIDLINE_DISTANCE - offsetX, 
+            i * dist - offsetX, 
             vp.h, 
             CLITERAL(Color){shade, shade, shade, 255},
             2
@@ -447,9 +450,9 @@ void drawGridlines() {
     for (int i = 0; i < vp.h / 10; i++) {
         drawDottedLine(
             0, 
-            i * MINOR_GRIDLINE_DISTANCE + offsetY, 
+            i * dist + offsetY, 
             vp.w, 
-            i * MINOR_GRIDLINE_DISTANCE + offsetY, 
+            i * dist + offsetY, 
             CLITERAL(Color){shade, shade, shade, 255},
             2
         );
@@ -549,6 +552,7 @@ int main() {
     vp.x = 500;
     vp.w = screenWidth;
     vp.h = screenHeight;
+    vp.scale = 1.0;
 
     InitWindow(screenWidth, screenHeight, "rtextures");
     SetTargetFPS(144);
