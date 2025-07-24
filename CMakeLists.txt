@@ -20,8 +20,10 @@ endif()
 # We don't want raylib's examples built. This option is picked up by raylib's CMakeLists.txt
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
+include_directories(include)
+
 # Here, the executable is declared with its sources. "main", or "main.exe" on windows will be the program's name
-add_executable(main "main.c")
+add_executable(main "src/main.c" "src/util.c" "src/viewport.c")
 
 # Link raylib to main
 target_link_libraries(main 

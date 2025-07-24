@@ -10,21 +10,30 @@
  * calculator tool like Desmos or Geogebra. Should support placing points and
  * connecting them with lines when completed.
 */
-#include <raylib.h>
+
+
+// Standard library header includes -------------------------------------------
 #include <stdio.h>
-#include <rcamera.h>
 #include <time.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
+
+// Third party header includes ------------------------------------------------
+#include <raylib.h>
+#include <rcamera.h>
 #ifdef __EMSCRIPTEN__
     #include <emscripten.h>
 #endif
+
+// Project header includes ----------------------------------------------------
+#include "viewport.h"
+#include "util.h"
 
 /*****************************************************************************
  * Macros and Constants
  *****************************************************************************/
 #define LOG(X) printf("%s: %d", __FILE__, __LINE__, X)
-#define BORDER_MARGIN               10
 #define MOUSE_ACTIVE_CLOCK_TICKS    15
 #define MAX_OBJECTS                 256
 #define MINOR_GRIDLINE_DISTANCE     100
@@ -36,17 +45,9 @@
  * Structs and Typedefs
  *****************************************************************************/
 
-struct viewport {
-    int y;
-    int x;
-    int w;
-    int h;
-    float scale; // TODO: implement zoom, which will require scaling all drawn objects
-};
 
 enum objectType {
     DOT,
-    LINE,
     SPRITE
 };
 
@@ -130,6 +131,10 @@ int objsLen = 0;
     });
 #endif
 
+/*****************************************************************************
+ * Functions
+ *****************************************************************************/
+
 /**
  * Adds an object to the object array and returns its index.
 */
@@ -150,10 +155,6 @@ int createConnection(struct object * src, struct object * dest) {
     return -1;
 }
 
-// FIXME: bandaid for wrong order
-int clampProjectX(int positionX, int clamp);
-int clampProjectY(int positionX, int clamp);
-
 /**
  * Draw a line from source node to cursor. Shows user they're making a 
  * connection.
@@ -161,57 +162,11 @@ int clampProjectY(int positionX, int clamp);
 void drawTempLine(void) {
     if (connectionSource != NULL && connectionDestination == NULL) {
         DrawLine(
-            clampProjectX(connectionSource->x, 0), 
-            clampProjectY(connectionSource->y, 0), 
+            clampProjectX(&vp, connectionSource->x, 0), 
+            clampProjectY(&vp, connectionSource->y, 0), 
             GetMouseX(),vp.h - GetMouseY(),
             BLACK
         );
-    }
-}
-
-/**
- * Returns 1 if the given world position is visible
- * in the current viewport. 
-*/
-int positionVisible(int y, int x) {
-    int yInRange = y >= 0 && y <= vp.y + vp.h;
-    int xInRange = x >= 0 && x <= vp.x + vp.w;
-    return yInRange && xInRange;
-}
-
-/**
- * Converts a Position Y coordinate to a screen Y coordinate.
-*/
-int clampProjectY(int positionY, int clamp) {
-    // Case: positionY is above the screen => clamp to top border
-    if (positionY < vp.y) {
-        return clamp ? GetScreenHeight() - BORDER_MARGIN : -1000;
-    }
-    // Case: positionY is below the screen => clamp to bottom border
-    else if (positionY > vp.y + vp.h) {
-        return clamp ? BORDER_MARGIN : -1000;
-    }
-    // Case: positionY is on screen
-    else {
-        return GetScreenHeight() - (positionY - vp.y);
-    }
-}
-
-/**
- * Converts a Position X coordinate to a screen X coordinate.
-*/
-int clampProjectX(int positionX, int clamp) {
-    // Case: positionX is left of the screen => clamp to left border
-    if (positionX < vp.x) {
-        return clamp ? BORDER_MARGIN : -1000;
-    }
-    // Case: positionX is right of the screen => clamp to right border
-    else if (positionX > vp.x + vp.w) {
-        return clamp ? vp.x + vp.w - BORDER_MARGIN : -1000;
-    }
-    // Case: positionX is on screen
-    else {
-        return positionX - vp.x;
     }
 }
 
@@ -234,8 +189,8 @@ int collidingWithPoint() {
 
     for (int i = 0; i < objsLen; i++) {
         // Adjust object coordinates for viewport
-        oy = vp.h - clampProjectY(objs[i].y, 0);
-        ox = clampProjectX(objs[i].x, 0);
+        oy = vp.h - clampProjectY(&vp, objs[i].y, 0);
+        ox = clampProjectX(&vp, objs[i].x, 0);
         yDelta = abs(oy - my);
         xDelta = abs(ox - mx);
 
@@ -351,35 +306,22 @@ void drawObjects() {
         switch (curr.type) {
             case DOT:
                 DrawCircle(
-                    clampProjectX(curr.x, curr.sticky), 
-                    clampProjectY(curr.y, curr.sticky), 
+                    clampProjectX(&vp, curr.x, curr.sticky), 
+                    clampProjectY(&vp, curr.y, curr.sticky), 
                     curr.radius, 
                     curr.color
                 );
                 break;
             case SPRITE:
-                // void DrawTextureEx(Texture2D texture, Vector2 position, float rotation, float scale, Color tint);
+                // void DrawTextureEx(Texture2D texture, Vector2 position, 
+                //     float rotation, float scale, Color tint);
                 Vector2 pos;
-                pos.x = clampProjectX(curr.x, curr.sticky); 
-                pos.y = clampProjectY(curr.y, curr.sticky); 
+                pos.x = clampProjectX(&vp, curr.x, curr.sticky); 
+                pos.y = clampProjectY(&vp, curr.y, curr.sticky); 
                 DrawTextureEx(skull, pos, 180.0, 1.0, curr.color);
                 break;
-            case LINE:
-                if (positionVisible(curr.destY, curr.destX)) {
-                    DrawLine(
-                        clampProjectX(curr.x, curr.sticky), 
-                        clampProjectY(curr.y, curr.sticky), 
-                        clampProjectX(curr.destX, 0), 
-                        clampProjectY(curr.destY, 0), 
-                        curr.color
-                    );
-                }
-                break;
         }
-
     }
-
-    
 }
 
 void drawLabels() {
@@ -389,8 +331,8 @@ void drawLabels() {
         curr = objs[i];
         DrawText(
             curr.label,
-            clampProjectX(curr.x, curr.sticky) + curr.radius + 5, 
-            vp.h - (clampProjectY(curr.y, curr.sticky) + curr.radius + 5),
+            clampProjectX(&vp, curr.x, curr.sticky) + curr.radius + 5, 
+            vp.h - (clampProjectY(&vp, curr.y, curr.sticky) + curr.radius + 5),
             20,
             BLACK
         );
@@ -402,31 +344,78 @@ void drawGridlines() {
     int offsetX = vp.x % MINOR_GRIDLINE_DISTANCE;
     int offsetY = vp.y % MINOR_GRIDLINE_DISTANCE;
 
-    const int shade = 220;
+    const int shade = 190;
 
     // Vertical lines
     for (int i = 0; i < vp.w / 10; i++) {
-        DrawLine(
+        drawDottedLine(
             i * MINOR_GRIDLINE_DISTANCE - offsetX, 
             0, 
             i * MINOR_GRIDLINE_DISTANCE - offsetX, 
             vp.h, 
-            CLITERAL(Color){shade, shade, shade, 255}
+            CLITERAL(Color){shade, shade, shade, 255},
+            2
         );
     }
 
     // FIXME: why do the horizontal lines appear to slide around
     // Horizontal lines
     for (int i = 0; i < vp.h / 10; i++) {
-        DrawLine(
+        drawDottedLine(
             0, 
             i * MINOR_GRIDLINE_DISTANCE + offsetY, 
             vp.w, 
             i * MINOR_GRIDLINE_DISTANCE + offsetY, 
-            CLITERAL(Color){shade, shade, shade, 255});
+            CLITERAL(Color){shade, shade, shade, 255},
+            2
+        );
     }
 
 }
+
+void printDebugInfo() {
+    DrawText(
+        TextFormat("vp: (%d, %d); %d objects", vp.y, vp.x, objsLen),
+        0, 20, 20, BLACK
+    );
+
+    DrawText(
+        TextFormat("drag pt: (%f, %f)", mouseDragPoint.y, mouseDragPoint.x),
+        0, 40, 20, BLACK
+    );
+
+    DrawText(
+        TextFormat(
+            "mouse last moving: %d curr time: %d",
+            lastMouseActivity, currentTime
+        ),
+        0, 60, 20, BLACK
+    );
+
+    DrawText(
+        TextFormat(
+            "Object last touched: %s at y,x (%d,%d)",
+            recentlyGrabbedObject == NULL ? "null" : (*recentlyGrabbedObject).label,
+            recentlyGrabbedObject == NULL ? -1 : (*recentlyGrabbedObject).y,
+            recentlyGrabbedObject == NULL ? -1 : (*recentlyGrabbedObject).x
+        ),
+        0, 80, 20, BLACK
+    );
+
+    DrawText(
+        TextFormat(
+            "Picking: %d Src: %s Dest: %s",
+            connectionSelected,
+            connectionSource == NULL ? "null" : connectionSource->label,
+            connectionDestination == NULL ? "null" : connectionDestination->label
+        ),
+        0, 100, 20, BLACK
+    );
+}
+
+/*****************************************************************************
+ * Game Loop
+ *****************************************************************************/
 
 void gameLoop() {
 
@@ -449,30 +438,16 @@ void gameLoop() {
         char* text = idbfs_get("file.txt");
         DrawText(TextFormat("Dynamic file content: %s", text), 0, 30, 20, WHITE);
     #endif
-    DrawText(TextFormat("viewport: (%d, %d); %d objects", vp.y, vp.x, objsLen), 0, 20, 20, BLACK);
-    DrawText(TextFormat("drag pt: (%f, %f)", mouseDragPoint.y, mouseDragPoint.x), 0, 40, 20, BLACK);
-    DrawText(TextFormat("mouse last moving: %d curr time: %d", lastMouseActivity, currentTime), 0, 60, 20, BLACK);
-    DrawText(
-        TextFormat("Object last touched: %s at y,x (%d,%d)", 
-            recentlyGrabbedObject == NULL ? "null" : (*recentlyGrabbedObject).label,
-            recentlyGrabbedObject == NULL ? -1 : (*recentlyGrabbedObject).y,
-            recentlyGrabbedObject == NULL ? -1 : (*recentlyGrabbedObject).x
-        ), 
-        0, 80, 20, BLACK
-    );
-    DrawText(
-        TextFormat("Picking: %d Src: %s Dest: %s", 
-            connectionSelected, 
-            connectionSource == NULL ? "null" : connectionSource->label, 
-            connectionDestination == NULL ? "null" : connectionDestination->label
-        ),
-        0, 100, 20, BLACK
-    );
+    printDebugInfo();
     drawLabels();
     if (mouseMoving)
         DrawText("Mouse moving", 300, 20, 20, BLUE);
     EndDrawing();
 }
+
+/*****************************************************************************
+ * Main Function (Point of Entry)
+ *****************************************************************************/
 
 int main() {
     int screenWidth = 960;
@@ -494,7 +469,7 @@ int main() {
     struct object skullObj = {
         .type = SPRITE,
         .sticky = 0,
-        .label = "Evil skull",
+        .label = strdup("Evil skull"),
         .color = BLACK,
         .y = 200,
         .x = 300
@@ -521,7 +496,9 @@ int main() {
     #endif
 
     for (int i = 0; i < objsLen; i++) {
-        free(objs[i].label);
+        if (objs[i].label != NULL) {
+            free(objs[i].label);
+        }
     }
 
     return 0;
