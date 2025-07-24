@@ -190,21 +190,6 @@ int createConnection(struct object * src, struct object * dest) {
 }
 
 /**
- * Draw a line from source node to cursor. Shows user they're making a 
- * connection.
-*/
-void drawTempLine(void) {
-    if (connectionSource != NULL && connectionDestination == NULL) {
-        DrawLine(
-            clampProjectX(&vp, connectionSource->x, 0), 
-            clampProjectY(&vp, connectionSource->y, 0), 
-            GetMouseX(),vp.h - GetMouseY(),
-            BLACK
-        );
-    }
-}
-
-/**
  * Determines if the mouse is colliding with an object.
  * Sets the recentlyGrabbedObject as a side effect if it is.
 */
@@ -242,6 +227,94 @@ int collidingWithPoint() {
     return FALSE;
 }
 
+/******************************************************************************
+ * Input Handling Functions
+ *****************************************************************************/
+void setDragPoint(int hittingPoint) {
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        if (hittingPoint) {
+            ds = OBJECT;
+        } else {
+            ds = VIEWPORT;
+        }
+        mouseDragPoint = GetMousePosition();
+    }
+}
+
+void setDragFromPoint() {
+    mouseDragPoint = GetMousePosition();
+    // Check if we are dragging the viewport or an object
+    switch (ds) {
+        case VIEWPORT:
+            dragViewportFrom.y = vp.y;
+            dragViewportFrom.x = vp.x;
+            break;
+        case OBJECT:
+            dragObjectFrom.y = recentlyGrabbedObject->y;
+            dragObjectFrom.x = recentlyGrabbedObject->x;
+            break;
+    }
+}
+
+void dragObjects() {
+    lastMouseActivity = clock() / (1000);
+    switch (ds) {
+        case VIEWPORT:
+            vp.x = (dragViewportFrom.x - GetMouseX() + mouseDragPoint.x);
+            vp.y = (dragViewportFrom.y - GetMouseY() + mouseDragPoint.y);
+            break;
+        case OBJECT:
+            recentlyGrabbedObject->x = 
+                (dragObjectFrom.x + GetMouseX() - mouseDragPoint.x);
+            recentlyGrabbedObject->y = 
+                (dragObjectFrom.y + GetMouseY() - mouseDragPoint.y);
+            break;
+    }
+}
+
+
+void createNode() {
+    char * label = calloc(32, sizeof(char));
+    asprintf(&label, "Object %d", objsLen + 1);
+    struct object dot = {
+        .type = DOT,
+        .sticky = 0,
+        .label= label,
+        .radius = 10,
+        .color = CLITERAL(Color){
+            10 + rand() % 245, 
+            10 + rand() % 245, 
+            10 + rand() % 245, 
+            255
+        },
+        .y = vp.y + GetMouseY(),
+        .x = vp.x + GetMouseX(),
+    }; 
+    addObject(dot);
+}
+
+void selectNodeForConnection(int hittingPoint) {
+    if (hittingPoint) {
+        if (connectionSelected == 0) {
+            connectionSource = recentlyGrabbedObject;
+            connectionSelected = 1;
+        } else {
+            connectionDestination = recentlyGrabbedObject;
+            if (connectionSource != NULL) {
+                createConnection(connectionSource, connectionDestination);
+            }
+                connectionSource = NULL;
+                connectionDestination = NULL;
+                connectionSelected = 0;
+            }
+    } else {
+        // User right-clicked on empty space
+        connectionSource = NULL;
+        connectionDestination = NULL;
+        connectionSelected = 0;
+    }
+}
+
 void handleInput() {
     if (IsKeyDown(KEY_W) && vp.y > 0) vp.y--;
     if (IsKeyDown(KEY_S)) vp.y++;
@@ -253,86 +326,42 @@ void handleInput() {
     int hittingPoint = collidingWithPoint();
 
     // Set drag point when LMB is pressed
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        if (hittingPoint) {
-            ds = OBJECT;
-        } else {
-            ds = VIEWPORT;
-        }
-        mouseDragPoint = GetMousePosition();
-    }
-
+    setDragPoint(hittingPoint);
+    
     if (IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE)) {
-        char * label = calloc(32, sizeof(char));
-        asprintf(&label, "Object %d", objsLen + 1);
-        struct object dot = {
-            .type = DOT,
-            .sticky = 0,
-            .label= label,
-            .radius = 10,
-            .color = CLITERAL(Color){10 + rand() % 245, 10 + rand() % 245, 10 + rand() % 245, 255},
-            .y = vp.y + GetMouseY(),
-            .x = vp.x + GetMouseX(),
-        }; 
-        addObject(dot);
+        createNode();
     }
-
     if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
-        if (hittingPoint) {
-            if (connectionSelected == 0) {
-                connectionSource = recentlyGrabbedObject;
-                connectionSelected = 1;
-            } else {
-                connectionDestination = recentlyGrabbedObject;
-                if (connectionSource != NULL) {
-                    createConnection(connectionSource, connectionDestination);
-                }
-                connectionSource = NULL;
-                connectionDestination = NULL;
-                connectionSelected = 0;
-            }
-        } else {
-            // User right-clicked on empty space
-            connectionSource = NULL;
-            connectionDestination = NULL;
-            connectionSelected = 0;
-        }
+        selectNodeForConnection(hittingPoint);
     }
 
     // Move viewport relative to drag point while LMB is down and moving
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        mouseDragPoint = GetMousePosition();
-        // Check if we are dragging the viewport or an object
-        switch (ds) {
-            case VIEWPORT:
-                dragViewportFrom.y = vp.y;
-                dragViewportFrom.x = vp.x;
-                break;
-            case OBJECT:
-                dragObjectFrom.y = recentlyGrabbedObject->y;
-                dragObjectFrom.x = recentlyGrabbedObject->x;
-                break;
-        }
+        setDragFromPoint();
     }
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-        lastMouseActivity = clock() / (1000);
-        switch (ds) {
-            case VIEWPORT:
-                vp.x = (dragViewportFrom.x - GetMouseX() + mouseDragPoint.x);
-                vp.y = (dragViewportFrom.y - GetMouseY() + mouseDragPoint.y);
-                break;
-            case OBJECT:
-                recentlyGrabbedObject->x = (dragObjectFrom.x + GetMouseX() - mouseDragPoint.x);
-                recentlyGrabbedObject->y = (dragObjectFrom.y + GetMouseY() - mouseDragPoint.y);
-                break;
-        }
-
+        dragObjects();
     }
 }
 
 /******************************************************************************
  * Drawing Functions
  *****************************************************************************/
+
+/**
+ * Draw a line from source node to cursor. Shows user they're making a 
+ * connection.
+*/
+void drawTempLine(void) {
+    if (connectionSource != NULL && connectionDestination == NULL) {
+        DrawLine(
+            clampProjectX(&vp, connectionSource->x, 0), 
+            clampProjectY(&vp, connectionSource->y, 0), 
+            GetMouseX(),vp.h - GetMouseY(),
+            BLACK
+        );
+    }
+}
 
 void drawObjects() {
     struct object curr;
