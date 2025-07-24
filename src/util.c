@@ -1,6 +1,7 @@
 #include "math.h"
 #include "util.h"
 
+// llm shlop
 void drawDottedLine(int startX, int startY, int endX, int endY, Color color, 
     int segmentSize) {
     // Calculate the full line length

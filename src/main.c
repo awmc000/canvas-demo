@@ -71,14 +71,26 @@ struct object {
     // Circle radius.
     int radius;
 
-    // Line destination
-    int destY, destX;
-
     // TODO: Implement textures, etc.
     Color color;
 
     // Object world position with origin at top left
     int y, x;
+};
+
+/**
+ * A connection is an edge between two `struct object` nodes.
+*/
+struct connection {
+    // A label that can be drawn next to this object
+    char * label;
+
+    int width;
+
+    Color color;
+
+    struct object * src;
+    struct object * dest;
 };
 
 /*****************************************************************************
@@ -108,10 +120,13 @@ struct object * connectionDestination;
 // 0 if selecting Source; 1 if selecting Destination.
 int connectionSelected = 0;
 
-// Objects array
+// Objects and connections arrays
 struct object objs[MAX_OBJECTS];
-struct object * recentlyGrabbedObject;
 int objsLen = 0;
+struct connection cons[MAX_OBJECTS];
+int consLen = 0;
+
+struct object * recentlyGrabbedObject;
 
 #ifdef __EMSCRIPTEN__
     EM_JS(void, idbfs_put, (const char* filename, const char* str), {
@@ -138,10 +153,19 @@ int objsLen = 0;
 /**
  * Adds an object to the object array and returns its index.
 */
-int createObject(struct object newObj) {
+int addObject(struct object newObj) {
     objs[objsLen] = newObj;
     objsLen++;
     return objsLen - 1;
+}
+
+/**
+ * Adds a connection to the connections array and returns its index.
+*/
+int addConnection(struct connection newCon) {
+    cons[consLen] = newCon;
+    consLen++;
+    return consLen - 1;
 }
 
 /**
@@ -152,6 +176,14 @@ int createConnection(struct object * src, struct object * dest) {
         connectionSource->label, connectionSource->y, connectionSource->y,
         connectionDestination->label, connectionDestination->y, connectionDestination->y
     );
+    struct connection con = {
+        .label = strdup("meep"),
+        .width = 1,
+        .color = BLACK,
+        .src = src,
+        .dest = dest
+    };
+    addConnection(con);
     return -1;
 }
 
@@ -221,7 +253,6 @@ void handleInput() {
     // Set drag point when LMB is pressed
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         if (hittingPoint) {
-            // TODO: any other drag behaviour
             ds = OBJECT;
         } else {
             ds = VIEWPORT;
@@ -241,27 +272,26 @@ void handleInput() {
             .y = vp.y + GetMouseY(),
             .x = vp.x + GetMouseX(),
         }; 
-        createObject(dot);
+        addObject(dot);
     }
 
     if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
-        // Set selected object
         if (hittingPoint) {
             if (connectionSelected == 0) {
                 connectionSource = recentlyGrabbedObject;
-            } else if (connectionSelected == 1) {
+                connectionSelected = 1;
+            } else {
                 connectionDestination = recentlyGrabbedObject;
-                // Create connection
-                createConnection(connectionSource, connectionDestination);
-                // TODO: Why does this cause a segfault / core dump when triggered?
-                // connectionSource = NULL; 
-                // connectionDestination = NULL;
-                // connectionSelected = 0;
+                if (connectionSource != NULL) {
+                    createConnection(connectionSource, connectionDestination);
+                }
+                connectionSource = NULL;
+                connectionDestination = NULL;
+                connectionSelected = 0;
             }
-            connectionSelected = connectionSelected ^ 1;
         } else {
-            // Clear selected object
-            connectionSource = NULL; 
+            // User right-clicked on empty space
+            connectionSource = NULL;
             connectionDestination = NULL;
             connectionSelected = 0;
         }
@@ -320,6 +350,25 @@ void drawObjects() {
                 pos.y = clampProjectY(&vp, curr.y, curr.sticky); 
                 DrawTextureEx(skull, pos, 180.0, 1.0, curr.color);
                 break;
+        }
+    }
+}
+
+void drawConnections() {
+    struct connection curr;
+
+    for (int i = 0; i < consLen; i++) {
+        curr = cons[i];
+        int srcVisible = positionVisible(&vp, curr.src->y, curr.src->x);
+        int destVisible = positionVisible(&vp, curr.dest->y, curr.dest->x);
+        if (srcVisible || destVisible) {
+            DrawLine(
+                clampProjectX(&vp, curr.src->x, 1), 
+                clampProjectY(&vp, curr.src->y, 1), 
+                clampProjectX(&vp, curr.dest->x, 1), 
+                clampProjectY(&vp, curr.dest->y, 1), 
+                BLACK
+            );
         }
     }
 }
@@ -429,6 +478,7 @@ void gameLoop() {
     BeginTextureMode(rt);
     ClearBackground(CLITERAL(Color){255, 255, 255, 255});
     drawGridlines();
+    drawConnections();
     drawObjects();
     drawTempLine();
     EndTextureMode();
@@ -474,7 +524,7 @@ int main() {
         .y = 200,
         .x = 300
     };
-    createObject(skullObj);
+    addObject(skullObj);
 
     #ifdef __EMSCRIPTEN__
         EM_ASM(
