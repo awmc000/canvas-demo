@@ -41,7 +41,7 @@ int clampProjectX(struct viewport * vp, int positionX, int clamp) {
  * in the current viewport. 
 */
 int positionVisible(struct viewport * vp, int y, int x) {
-    int yInRange = y >= 0 && y <= vp->y + vp->h;
-    int xInRange = x >= 0 && x <= vp->x + vp->w;
+    int yInRange = (y >= 0 + vp->y) && (y <= (vp->y + vp->h));
+    int xInRange = (x >= 0 + vp->x) && (x <= (vp->x + vp->w));
     return yInRange && xInRange;
 }
