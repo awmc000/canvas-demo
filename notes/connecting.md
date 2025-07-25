@@ -13,3 +13,6 @@
 - Next is to implement the node dragging while mouse is down.
 - Should possibly track whether we're dragging viewport or an object with another global.
 - Then on to the behaviour of connecting nodes with lines.
+- OK, it's a few days later and I have nodes connecting fine.
+- However, the behaviour for drawing the line should be tweaked so that it always goes in the same direction even when a node is offscreen.
+- It is also crucial to get screen size checks out of everything related to viewport so that there can be other components on screen beside viewport eventually.
