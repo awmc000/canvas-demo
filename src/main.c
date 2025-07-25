@@ -161,8 +161,7 @@ EM_JS(char *, idbfs_get, (const char * filename), {
 /**
  * Adds an object to the object array and returns its index.
  */
-int
-addObject(struct object newObj)
+int addObject(struct object newObj)
 {
     objs[objsLen] = newObj;
     objsLen++;
@@ -172,8 +171,7 @@ addObject(struct object newObj)
 /**
  * Adds a connection to the connections array and returns its index.
  */
-int
-addConnection(struct connection newCon)
+int addConnection(struct connection newCon)
 {
     cons[consLen] = newCon;
     consLen++;
@@ -183,8 +181,7 @@ addConnection(struct connection newCon)
 /**
  * Creates an edge between two nodes and returns its index.
  */
-int
-createConnection(struct object * src, struct object * dest)
+int createConnection(struct object * src, struct object * dest)
 {
     printf(
         "IMPLEMENT: Create a connection between %s at (%d,%d) and %s at (%d,%d)\n",
@@ -207,8 +204,7 @@ createConnection(struct object * src, struct object * dest)
  * Determines if the mouse is colliding with an object.
  * Sets the recentlyGrabbedObject as a side effect if it is.
  */
-int
-collidingWithPoint()
+int collidingWithPoint()
 {
     int my = GetMouseY();
     int mx = GetMouseX();
@@ -246,8 +242,7 @@ collidingWithPoint()
 /******************************************************************************
  * Input Handling Functions
  *****************************************************************************/
-void
-setDragPoint(int hittingPoint)
+void setDragPoint(int hittingPoint)
 {
     if (hittingPoint)
         ds = OBJECT;
@@ -256,8 +251,7 @@ setDragPoint(int hittingPoint)
     mouseDragPoint = GetMousePosition();
 }
 
-void
-setDragFromPoint()
+void setDragFromPoint()
 {
     mouseDragPoint = GetMousePosition();
     // Check if we are dragging the viewport or an object
@@ -273,8 +267,7 @@ setDragFromPoint()
     }
 }
 
-void
-dragObjects()
+void dragObjects()
 {
     lastMouseActivity = clock() / (1000);
     switch (ds) {
@@ -291,8 +284,7 @@ dragObjects()
     }
 }
 
-void
-createNode()
+void createNode()
 {
     char * label = calloc(32, sizeof(char));
 
@@ -314,8 +306,7 @@ createNode()
     addObject(dot);
 }
 
-void
-selectNodeForConnection(int hittingPoint)
+void selectNodeForConnection(int hittingPoint)
 {
     if (hittingPoint) {
         if (connectionSelected == 0) {
@@ -340,8 +331,7 @@ selectNodeForConnection(int hittingPoint)
 /**
  * returns if the most recent click was a double click.
  */
-int
-isDoubleClick()
+int isDoubleClick()
 {
     return lastMouseActivity - prevMouseActivity <= DOUBLE_CLICK_PERIOD;
 }
@@ -350,8 +340,7 @@ isDoubleClick()
  * Main input handling function
  *****************************************************************************/
 
-void
-handleInput()
+void handleInput()
 {
     if (IsKeyDown(KEY_A))
         vp.scale -= 0.02;
@@ -406,8 +395,7 @@ handleInput()
  * Draw a line from source node to cursor. Shows user they're making a
  * connection.
  */
-void
-drawTempLine(void)
+void drawTempLine(void)
 {
     if (connectionSource != NULL && connectionDestination == NULL)
         DrawLine(
@@ -418,8 +406,7 @@ drawTempLine(void)
         );
 }
 
-void
-drawObjects()
+void drawObjects()
 {
     struct object curr;
 
@@ -446,8 +433,7 @@ drawObjects()
     }
 }
 
-void
-drawConnections()
+void drawConnections()
 {
     struct connection curr;
 
@@ -466,8 +452,7 @@ drawConnections()
     }
 }
 
-void
-drawLabels()
+void drawLabels()
 {
     struct object curr;
 
@@ -485,8 +470,7 @@ drawLabels()
     }
 }
 
-void
-drawGridlines()
+void drawGridlines()
 {
     int offsetX = vp.x % MINOR_GRIDLINE_DISTANCE;
     int offsetY = vp.y % MINOR_GRIDLINE_DISTANCE;
@@ -522,16 +506,14 @@ drawGridlines()
         );
 } /* drawGridlines */
 
-void
-drawOverlay()
+void drawOverlay()
 {
     DrawRectangle(0, 0, vp.w, vp.h, CLITERAL(Color){
         0, 0, 0, 200
     });
 }
 
-void
-printDebugInfo()
+void printDebugInfo()
 {
     DrawText(
         TextFormat("vp: (%d, %d); %d objects", vp.y, vp.x, objsLen),
@@ -578,8 +560,7 @@ printDebugInfo()
 * Game Loop
 *****************************************************************************/
 
-void
-gameLoop()
+void gameLoop()
 {
     currentTime = clock() / (1000);
     mouseMoving = currentTime - lastMouseActivity < MOUSE_ACTIVE_CLOCK_TICKS;
@@ -618,8 +599,7 @@ gameLoop()
 * Main Function (Point of Entry)
 *****************************************************************************/
 
-int
-main()
+int main()
 {
     int screenWidth  = 960;
     int screenHeight = 480;

@@ -3,8 +3,7 @@
 /**
  * Converts a Position Y coordinate to a screen Y coordinate.
  */
-int
-clampProjectY(struct viewport * vp, int positionY, int clamp)
+int clampProjectY(struct viewport * vp, int positionY, int clamp)
 {
     // Case: positionY is above the screen => clamp to top border
     if (positionY < vp->y)
@@ -20,8 +19,7 @@ clampProjectY(struct viewport * vp, int positionY, int clamp)
 /**
  * Converts a Position X coordinate to a screen X coordinate.
  */
-int
-clampProjectX(struct viewport * vp, int positionX, int clamp)
+int clampProjectX(struct viewport * vp, int positionX, int clamp)
 {
     // Case: positionX is left of the screen => clamp to left border
     if (positionX < vp->x)
@@ -38,8 +36,7 @@ clampProjectX(struct viewport * vp, int positionX, int clamp)
  * Returns 1 if the given world position is visible
  * in the current viewport.
  */
-int
-positionVisible(struct viewport * vp, int y, int x)
+int positionVisible(struct viewport * vp, int y, int x)
 {
     int yInRange = (y >= 0 + vp->y) && (y <= (vp->y + vp->h));
     int xInRange = (x >= 0 + vp->x) && (x <= (vp->x + vp->w));
