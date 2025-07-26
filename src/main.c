@@ -441,14 +441,16 @@ void drawConnections()
         curr = cons[i];
         int srcVisible  = positionVisible(&vp, curr.src->y, curr.src->x);
         int destVisible = positionVisible(&vp, curr.dest->y, curr.dest->x);
+        // Draw normally if both visible.
         if (srcVisible || destVisible)
             DrawLine(
-                clampProjectX(&vp, curr.src->x, 1),
-                clampProjectY(&vp, curr.src->y, 1),
-                clampProjectX(&vp, curr.dest->x, 1),
-                clampProjectY(&vp, curr.dest->y, 1),
+                projectX(&vp, curr.src->x),
+                projectY(&vp, curr.src->y),
+                projectX(&vp, curr.dest->x),
+                projectY(&vp, curr.dest->y),
                 BLACK
             );
+        // Otherwise, determine the angle between the two if it were on screen..?
     }
 }
 

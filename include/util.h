@@ -12,8 +12,7 @@
  * Wrapper for DrawLine which draws the line in segments of the given size,
  * which should be at least 1.
  */
-void
-drawDottedLine(int startX, int startY, int endX, int endY, Color color,
+void drawDottedLine(int startX, int startY, int endX, int endY, Color color,
   int segmentSize);
 
 #endif // UTIL_H

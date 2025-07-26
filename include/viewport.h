@@ -27,20 +27,29 @@ struct viewport {
 /**
  * Converts a Position Y coordinate to a screen Y coordinate.
  */
-int
-clampProjectX(struct viewport * vp, int positionX, int clamp);
+int projectX(struct viewport * vp, int positionX);
+
+/**
+ * Converts a Position Y coordinate to a screen Y coordinate
+ * clamping coordinates if desired, else placing them far offscreen.
+ */
+int clampProjectX(struct viewport * vp, int positionX, int clamp);
 
 /**
  * Converts a Position X coordinate to a screen X coordinate.
  */
-int
-clampProjectY(struct viewport * vp, int positionX, int clamp);
+int projectY(struct viewport * vp, int positionY);
+
+/**
+ * Converts a Position X coordinate to a screen X coordinate.
+ * clamping coordinates if desired, else placing them far offscreen.
+ */
+int clampProjectY(struct viewport * vp, int positionY, int clamp);
 
 /**
  * Returns 1 if the given world position is visible
  * in the current viewport.
  */
-int
-positionVisible(struct viewport * vp, int y, int x);
+int positionVisible(struct viewport * vp, int y, int x);
 
 #endif // VIEWPORT_H

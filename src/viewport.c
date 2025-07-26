@@ -1,8 +1,10 @@
 #include "viewport.h"
 
-/**
- * Converts a Position Y coordinate to a screen Y coordinate.
- */
+int projectY(struct viewport * vp, int positionY)
+{
+    return vp->h - (positionY - vp->y);
+}
+
 int clampProjectY(struct viewport * vp, int positionY, int clamp)
 {
     // Case: positionY is above the screen => clamp to top border
@@ -16,9 +18,11 @@ int clampProjectY(struct viewport * vp, int positionY, int clamp)
         return vp->h - (positionY - vp->y);
 }
 
-/**
- * Converts a Position X coordinate to a screen X coordinate.
- */
+int projectX(struct viewport * vp, int positionX)
+{
+    return positionX - vp->x;
+}
+
 int clampProjectX(struct viewport * vp, int positionX, int clamp)
 {
     // Case: positionX is left of the screen => clamp to left border
@@ -29,13 +33,9 @@ int clampProjectX(struct viewport * vp, int positionX, int clamp)
         return clamp ? vp->w - BORDER_MARGIN : -1000;
     // Case: positionX is on screen
     else
-        return positionX - vp->x;
+        return projectX(vp, positionX);
 }
 
-/**
- * Returns 1 if the given world position is visible
- * in the current viewport.
- */
 int positionVisible(struct viewport * vp, int y, int x)
 {
     int yInRange = (y >= 0 + vp->y) && (y <= (vp->y + vp->h));
