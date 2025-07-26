@@ -24,7 +24,7 @@
 #include <raylib.h>
 #include <rcamera.h>
 #ifdef __EMSCRIPTEN__
-# include <emscripten.h>
+    #include <emscripten.h>
 #endif
 
 // Project header includes ----------------------------------------------------
@@ -38,6 +38,7 @@
 #define MOUSE_ACTIVE_CLOCK_TICKS 15
 #define MAX_OBJECTS              256
 #define MINOR_GRIDLINE_DISTANCE  100
+#define MINOR_GRID_SEG_LENGTH    2
 #define COLLISION_MARGIN_PX      2
 #define TRUE                     1
 #define FALSE                    0
@@ -69,11 +70,9 @@ struct object {
     // A label that can be drawn next to this object
     char * label;
 
-    // TODO: Generalize to more than circles!
     // Circle radius.
     int   radius;
 
-    // TODO: Implement textures, etc.
     Color color;
 
     // Object world position with origin at top left
@@ -183,8 +182,9 @@ int addConnection(struct connection newCon)
  */
 int createConnection(struct object * src, struct object * dest)
 {
-    printf(
-        "IMPLEMENT: Create a connection between %s at (%d,%d) and %s at (%d,%d)\n",
+    fprintf(
+        stderr,
+        "Creating a connection between %s at (%d,%d) and %s at (%d,%d)\n",
         connectionSource->label, connectionSource->y, connectionSource->y,
         connectionDestination->label, connectionDestination->y,
         connectionDestination->y
@@ -474,8 +474,8 @@ void drawLabels()
 
 void drawGridlines()
 {
-    int offsetX = vp.x % MINOR_GRIDLINE_DISTANCE;
-    int offsetY = vp.y % MINOR_GRIDLINE_DISTANCE;
+    int offsetX = vp.x % MINOR_GRIDLINE_DISTANCE - MINOR_GRID_SEG_LENGTH;
+    int offsetY = vp.y % MINOR_GRIDLINE_DISTANCE - MINOR_GRID_SEG_LENGTH;
 
     const int shade = 190;
     const int dist  = MINOR_GRIDLINE_DISTANCE * vp.scale;
@@ -487,10 +487,8 @@ void drawGridlines()
             0,
             i * dist - offsetX,
             vp.h,
-            CLITERAL(Color){
-            shade, shade, shade, 255
-        },
-            2
+            CLITERAL(Color){shade, shade, shade, 255},
+            MINOR_GRID_SEG_LENGTH
         );
 
     // FIXME: why do the horizontal lines appear to slide around
@@ -501,10 +499,8 @@ void drawGridlines()
             i * dist + offsetY,
             vp.w,
             i * dist + offsetY,
-            CLITERAL(Color){
-            shade, shade, shade, 255
-        },
-            2
+            CLITERAL(Color){shade, shade, shade, 255},
+            MINOR_GRID_SEG_LENGTH
         );
 } /* drawGridlines */
 

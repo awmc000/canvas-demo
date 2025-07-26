@@ -5,6 +5,13 @@
 void drawDottedLine(int startX, int startY, int endX, int endY, Color color,
   int segmentSize)
 {
+    
+    // segmentSize of 0 = straight line
+    if (segmentSize == 0) {
+        DrawLine(startX, startY, endX, endY, color);
+        return;
+    }
+    
     // Calculate the full line length
     float dx     = endX - startX;
     float dy     = endY - startY;
