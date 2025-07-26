@@ -43,7 +43,7 @@
 #define TRUE                     1
 #define FALSE                    0
 #define DOUBLE_CLICK_PERIOD      100
-#define MAX_LABEL_LENGTH         32
+#define MAX_LABEL_LENGTH         16
 
 /*****************************************************************************
 * Structs and Typedefs
@@ -134,6 +134,11 @@ struct object * recentlyGrabbedObject;
 int overlayState = FALSE;
 char overlayTextInput[MAX_LABEL_LENGTH + 1];
 int overlayTextIndex = 0;
+const int panelHeight = 28;
+const int panelWidth = 200;
+int panelX;
+int panelY;
+
 
 #ifdef __EMSCRIPTEN__
     EM_JS(void, idbfs_put, (const char * filename, const char * str), {
@@ -342,11 +347,6 @@ int isDoubleClick()
 
 void handleInput()
 {
-    if (IsKeyDown(KEY_A))
-        vp.scale -= 0.02;
-    if (IsKeyDown(KEY_Z))
-        vp.scale += 0.02;
-
     // save if we are colliding with a point
     // so we don't check again in one input frame
     int hittingPoint = collidingWithPoint();
@@ -375,15 +375,14 @@ void handleInput()
     // Get keys if in input field
     char ch = GetKeyPressed();
     if (overlayState == 1 && ch != 0 && isascii(ch)) {
-        if (ch == KEY_BACKSPACE) {
-            // FIXME: doesn't work
-            overlayTextIndex    = 0;
-            overlayTextInput[0] = 0;
+        // Why is the keycode for backspace 3 for me and 259 in raylib.h...?
+        if (ch == KEY_BACKSPACE || ch == 3) {
+            memset(&overlayTextInput[0], 0, sizeof(overlayTextInput));
+            overlayTextIndex = 0;
         } else {
             overlayTextInput[overlayTextIndex] = ch;
             overlayTextIndex = (overlayTextIndex + 1) % MAX_LABEL_LENGTH;
         }
-        printf("[%s]\n", overlayTextInput);
     }
 } /* handleInput */
 
@@ -556,6 +555,22 @@ void printDebugInfo()
         ),
         0, 100, 20, BLACK
     );
+
+    if (overlayState) {
+        // Draw black rect, offset by 2px each direction
+        DrawRectangle(panelX - 2, panelY - 2, panelWidth + 4, panelHeight + 4, BLACK);
+
+        // Draw white rect
+        DrawRectangle(panelX, panelY, panelWidth, panelHeight, WHITE);
+        
+        // Label will be drawn on top in other functions
+        DrawText(
+            TextFormat(
+                "%s", overlayTextInput
+            ),
+            panelX + 2, panelY + 2, 20, BLACK
+        );
+    }
 } /* printDebugInfo */
 
 /*****************************************************************************
@@ -612,6 +627,9 @@ int main()
     vp.w     = screenWidth;
     vp.h     = screenHeight;
     vp.scale = 1.0;
+
+    panelX = (vp.w / 2) - (panelWidth / 2);
+    panelY = (vp.h / 2) - (panelHeight / 2);
 
     overlayTextInput[MAX_LABEL_LENGTH] = 0;
 
