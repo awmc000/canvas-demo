@@ -24,7 +24,7 @@
 #include <raylib.h>
 #include <rcamera.h>
 #ifdef __EMSCRIPTEN__
-    #include <emscripten.h>
+# include <emscripten.h>
 #endif
 
 // Project header includes ----------------------------------------------------
@@ -71,12 +71,12 @@ struct object {
     char * label;
 
     // Circle radius.
-    int   radius;
+    int    radius;
 
-    Color color;
+    Color  color;
 
     // Object world position with origin at top left
-    int   y, x;
+    int    y, x;
 };
 
 /**
@@ -136,13 +136,13 @@ char overlayTextInput[MAX_LABEL_LENGTH + 1];
 int overlayTextIndex = 0;
 
 #ifdef __EMSCRIPTEN__
-EM_JS(void, idbfs_put, (const char * filename, const char * str), {
+    EM_JS(void, idbfs_put, (const char * filename, const char * str), {
     FS.writeFile(UTF8ToString(filename), UTF8ToString(str));
     FS.syncfs(false, function(err){
         assert(!err);
     });
 });
-EM_JS(char *, idbfs_get, (const char * filename), {
+    EM_JS(char *, idbfs_get, (const char * filename), {
     var arr         = FS.readFile(UTF8ToString(filename));
     var jsString    = new TextDecoder().decode(arr);
     var lengthBytes = lengthBytesUTF8(jsString) + 1;
@@ -487,7 +487,9 @@ void drawGridlines()
             0,
             i * dist - offsetX,
             vp.h,
-            CLITERAL(Color){shade, shade, shade, 255},
+            CLITERAL(Color){
+            shade, shade, shade, 255
+        },
             MINOR_GRID_SEG_LENGTH
         );
 
@@ -499,7 +501,9 @@ void drawGridlines()
             i * dist + offsetY,
             vp.w,
             i * dist + offsetY,
-            CLITERAL(Color){shade, shade, shade, 255},
+            CLITERAL(Color){
+            shade, shade, shade, 255
+        },
             MINOR_GRID_SEG_LENGTH
         );
 } /* drawGridlines */
@@ -583,8 +587,9 @@ void gameLoop()
     });
     DrawFPS(0, 0);
     #ifdef __EMSCRIPTEN__
-    char * text = idbfs_get("file.txt");
-    DrawText(TextFormat("Dynamic file content: %s", text), 0, 30, 20, WHITE);
+        char * text = idbfs_get("file.txt");
+        DrawText(TextFormat("Dynamic file content: %s", text), 0, 30, 20,
+          WHITE);
     #endif
     printDebugInfo();
     drawLabels();
@@ -628,21 +633,21 @@ int main()
     addObject(skullObj);
 
     #ifdef __EMSCRIPTEN__
-    EM_ASM(
-        FS.mkdir('/work');
-        FS.mount(IDBFS, { }, '/work');
-        FS.syncfs(true, function(err){
+        EM_ASM(
+            FS.mkdir('/work');
+            FS.mount(IDBFS, { }, '/work');
+            FS.syncfs(true, function(err){
         assert(!err);
     });
-    );
-    struct timespec ts  = { .tv_sec = 0, .tv_nsec = 100000000 };
-    struct timespec ts2 = { .tv_sec = 0, .tv_nsec = 100000000 };
-    nanosleep(&ts, &ts2);
-    idbfs_put("file.txt", "Some dynamic file contents...\n");
-    emscripten_set_main_loop(gameLoop, 0, 0);
+        );
+        struct timespec ts  = { .tv_sec = 0, .tv_nsec = 100000000 };
+        struct timespec ts2 = { .tv_sec = 0, .tv_nsec = 100000000 };
+        nanosleep(&ts, &ts2);
+        idbfs_put("file.txt", "Some dynamic file contents...\n");
+        emscripten_set_main_loop(gameLoop, 0, 0);
     #else  /* ifdef __EMSCRIPTEN__ */
-    while (!WindowShouldClose())
-        gameLoop();
+        while (!WindowShouldClose())
+            gameLoop();
 
     #endif /* ifdef __EMSCRIPTEN__ */
 
