@@ -1,12 +1,10 @@
 #include "viewport.h"
 
-int projectY(struct viewport * vp, int positionY)
-{
+int projectY(struct viewport * vp, int positionY) {
     return vp->h - (positionY - vp->y);
 }
 
-int clampProjectY(struct viewport * vp, int positionY, int clamp)
-{
+int clampProjectY(struct viewport * vp, int positionY, int clamp) {
     // Case: positionY is above the screen => clamp to top border
     if (positionY < vp->y)
         return clamp ? vp->h - BORDER_MARGIN : -1000;
@@ -18,13 +16,11 @@ int clampProjectY(struct viewport * vp, int positionY, int clamp)
         return vp->h - (positionY - vp->y);
 }
 
-int projectX(struct viewport * vp, int positionX)
-{
+int projectX(struct viewport * vp, int positionX) {
     return positionX - vp->x;
 }
 
-int clampProjectX(struct viewport * vp, int positionX, int clamp)
-{
+int clampProjectX(struct viewport * vp, int positionX, int clamp) {
     // Case: positionX is left of the screen => clamp to left border
     if (positionX < vp->x)
         return clamp ? BORDER_MARGIN : -1000;
@@ -36,8 +32,7 @@ int clampProjectX(struct viewport * vp, int positionX, int clamp)
         return projectX(vp, positionX);
 }
 
-int positionVisible(struct viewport * vp, int y, int x)
-{
+int positionVisible(struct viewport * vp, int y, int x) {
     int yInRange = (y >= 0 + vp->y) && (y <= (vp->y + vp->h));
     int xInRange = (x >= 0 + vp->x) && (x <= (vp->x + vp->w));
 

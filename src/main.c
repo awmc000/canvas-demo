@@ -133,9 +133,9 @@ struct object * recentlyGrabbedObject;
 // UI state
 int overlayState = FALSE;
 char overlayTextInput[MAX_LABEL_LENGTH + 1];
-int overlayTextIndex = 0;
+int overlayTextIndex  = 0;
 const int panelHeight = 28;
-const int panelWidth = 200;
+const int panelWidth  = 200;
 int panelX;
 int panelY;
 
@@ -143,7 +143,7 @@ int panelY;
 #ifdef __EMSCRIPTEN__
     EM_JS(void, idbfs_put, (const char * filename, const char * str), {
     FS.writeFile(UTF8ToString(filename), UTF8ToString(str));
-    FS.syncfs(false, function(err){
+    FS.syncfs(false, function(err) {
         assert(!err);
     });
 });
@@ -165,8 +165,7 @@ int panelY;
 /**
  * Adds an object to the object array and returns its index.
  */
-int addObject(struct object newObj)
-{
+int addObject(struct object newObj) {
     objs[objsLen] = newObj;
     objsLen++;
     return objsLen - 1;
@@ -175,8 +174,7 @@ int addObject(struct object newObj)
 /**
  * Adds a connection to the connections array and returns its index.
  */
-int addConnection(struct connection newCon)
-{
+int addConnection(struct connection newCon) {
     cons[consLen] = newCon;
     consLen++;
     return consLen - 1;
@@ -185,8 +183,7 @@ int addConnection(struct connection newCon)
 /**
  * Creates an edge between two nodes and returns its index.
  */
-int createConnection(struct object * src, struct object * dest)
-{
+int createConnection(struct object * src, struct object * dest) {
     fprintf(
         stderr,
         "Creating a connection between %s at (%d,%d) and %s at (%d,%d)\n",
@@ -209,8 +206,7 @@ int createConnection(struct object * src, struct object * dest)
  * Determines if the mouse is colliding with an object.
  * Sets the recentlyGrabbedObject as a side effect if it is.
  */
-int collidingWithPoint()
-{
+int collidingWithPoint() {
     int my = GetMouseY();
     int mx = GetMouseX();
 
@@ -247,8 +243,7 @@ int collidingWithPoint()
 /******************************************************************************
  * Input Handling Functions
  *****************************************************************************/
-void setDragPoint(int hittingPoint)
-{
+void setDragPoint(int hittingPoint) {
     if (hittingPoint)
         ds = OBJECT;
     else
@@ -256,8 +251,7 @@ void setDragPoint(int hittingPoint)
     mouseDragPoint = GetMousePosition();
 }
 
-void setDragFromPoint()
-{
+void setDragFromPoint() {
     mouseDragPoint = GetMousePosition();
     // Check if we are dragging the viewport or an object
     switch (ds) {
@@ -272,8 +266,7 @@ void setDragFromPoint()
     }
 }
 
-void dragObjects()
-{
+void dragObjects() {
     lastMouseActivity = clock() / (1000);
     switch (ds) {
         case VIEWPORT:
@@ -289,8 +282,7 @@ void dragObjects()
     }
 }
 
-void createNode()
-{
+void createNode() {
     char * label = calloc(32, sizeof(char));
 
     asprintf(&label, "Object %d", objsLen + 1);
@@ -299,7 +291,7 @@ void createNode()
         .sticky = 0,
         .label  = label,
         .radius = 10,
-        .color  = CLITERAL(Color){
+        .color  = CLITERAL(Color) {
             10 + rand() % 245,
             10 + rand() % 245,
             10 + rand() % 245,
@@ -311,8 +303,7 @@ void createNode()
     addObject(dot);
 }
 
-void selectNodeForConnection(int hittingPoint)
-{
+void selectNodeForConnection(int hittingPoint) {
     if (hittingPoint) {
         if (connectionSelected == 0) {
             connectionSource   = recentlyGrabbedObject;
@@ -336,8 +327,7 @@ void selectNodeForConnection(int hittingPoint)
 /**
  * returns if the most recent click was a double click.
  */
-int isDoubleClick()
-{
+int isDoubleClick() {
     return lastMouseActivity - prevMouseActivity <= DOUBLE_CLICK_PERIOD;
 }
 
@@ -345,8 +335,7 @@ int isDoubleClick()
  * Main input handling function
  *****************************************************************************/
 
-void handleInput()
-{
+void handleInput() {
     // save if we are colliding with a point
     // so we don't check again in one input frame
     int hittingPoint = collidingWithPoint();
@@ -394,8 +383,7 @@ void handleInput()
  * Draw a line from source node to cursor. Shows user they're making a
  * connection.
  */
-void drawTempLine(void)
-{
+void drawTempLine(void) {
     if (connectionSource != NULL && connectionDestination == NULL)
         DrawLine(
             clampProjectX(&vp, connectionSource->x, 0),
@@ -405,8 +393,7 @@ void drawTempLine(void)
         );
 }
 
-void drawObjects()
-{
+void drawObjects() {
     struct object curr;
 
     for (int i = 0; i < objsLen; i++) {
@@ -432,8 +419,7 @@ void drawObjects()
     }
 }
 
-void drawConnections()
-{
+void drawConnections() {
     struct connection curr;
 
     for (int i = 0; i < consLen; i++) {
@@ -453,8 +439,7 @@ void drawConnections()
     }
 }
 
-void drawLabels()
-{
+void drawLabels() {
     struct object curr;
 
     for (int i = 0; i < objsLen; i++) {
@@ -471,8 +456,7 @@ void drawLabels()
     }
 }
 
-void drawGridlines()
-{
+void drawGridlines() {
     int offsetX = vp.x % MINOR_GRIDLINE_DISTANCE - MINOR_GRID_SEG_LENGTH;
     int offsetY = vp.y % MINOR_GRIDLINE_DISTANCE - MINOR_GRID_SEG_LENGTH;
 
@@ -486,7 +470,7 @@ void drawGridlines()
             0,
             i * dist - offsetX,
             vp.h,
-            CLITERAL(Color){
+            CLITERAL(Color) {
             shade, shade, shade, 255
         },
             MINOR_GRID_SEG_LENGTH
@@ -500,22 +484,20 @@ void drawGridlines()
             i * dist + offsetY,
             vp.w,
             i * dist + offsetY,
-            CLITERAL(Color){
+            CLITERAL(Color) {
             shade, shade, shade, 255
         },
             MINOR_GRID_SEG_LENGTH
         );
 } /* drawGridlines */
 
-void drawOverlay()
-{
-    DrawRectangle(0, 0, vp.w, vp.h, CLITERAL(Color){
+void drawOverlay() {
+    DrawRectangle(0, 0, vp.w, vp.h, CLITERAL(Color) {
         0, 0, 0, 200
     });
 }
 
-void printDebugInfo()
-{
+void printDebugInfo() {
     DrawText(
         TextFormat("vp: (%d, %d); %d objects", vp.y, vp.x, objsLen),
         0, 20, 20, BLACK
@@ -558,11 +540,12 @@ void printDebugInfo()
 
     if (overlayState) {
         // Draw black rect, offset by 2px each direction
-        DrawRectangle(panelX - 2, panelY - 2, panelWidth + 4, panelHeight + 4, BLACK);
+        DrawRectangle(panelX - 2, panelY - 2, panelWidth + 4, panelHeight + 4,
+          BLACK);
 
         // Draw white rect
         DrawRectangle(panelX, panelY, panelWidth, panelHeight, WHITE);
-        
+
         // Label will be drawn on top in other functions
         DrawText(
             TextFormat(
@@ -577,8 +560,7 @@ void printDebugInfo()
 * Game Loop
 *****************************************************************************/
 
-void gameLoop()
-{
+void gameLoop() {
     currentTime = clock() / (1000);
     mouseMoving = currentTime - lastMouseActivity < MOUSE_ACTIVE_CLOCK_TICKS;
 
@@ -587,7 +569,7 @@ void gameLoop()
     // Drawing to render texture
     BeginDrawing();
     BeginTextureMode(rt);
-    ClearBackground(CLITERAL(Color){
+    ClearBackground(CLITERAL(Color) {
         255, 255, 255, 255
     });
     drawGridlines();
@@ -597,7 +579,7 @@ void gameLoop()
     if (overlayState)
         drawOverlay();
     EndTextureMode();
-    DrawTexture(rt.texture, 0, 0, CLITERAL(Color){
+    DrawTexture(rt.texture, 0, 0, CLITERAL(Color) {
         255, 255, 255, 255
     });
     DrawFPS(0, 0);
@@ -617,8 +599,7 @@ void gameLoop()
 * Main Function (Point of Entry)
 *****************************************************************************/
 
-int main()
-{
+int main() {
     int screenWidth  = 960;
     int screenHeight = 480;
 
@@ -654,7 +635,7 @@ int main()
         EM_ASM(
             FS.mkdir('/work');
             FS.mount(IDBFS, { }, '/work');
-            FS.syncfs(true, function(err){
+            FS.syncfs(true, function(err) {
         assert(!err);
     });
         );
