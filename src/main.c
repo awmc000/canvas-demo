@@ -495,6 +495,12 @@ void drawOverlay() {
     DrawRectangle(0, 0, vp.w, vp.h, CLITERAL(Color) {
         0, 0, 0, 200
     });
+    // Draw black rect, offset by 2px each direction
+    DrawRectangle(panelX - 2, panelY - 2, panelWidth + 4, panelHeight + 4,
+      BLACK);
+
+    // Draw white rect
+    DrawRectangle(panelX, panelY, panelWidth, panelHeight, WHITE);
 }
 
 void printDebugInfo() {
@@ -537,23 +543,6 @@ void printDebugInfo() {
         ),
         0, 100, 20, BLACK
     );
-
-    if (overlayState) {
-        // Draw black rect, offset by 2px each direction
-        DrawRectangle(panelX - 2, panelY - 2, panelWidth + 4, panelHeight + 4,
-          BLACK);
-
-        // Draw white rect
-        DrawRectangle(panelX, panelY, panelWidth, panelHeight, WHITE);
-
-        // Label will be drawn on top in other functions
-        DrawText(
-            TextFormat(
-                "%s", overlayTextInput
-            ),
-            panelX + 2, panelY + 2, 20, BLACK
-        );
-    }
 } /* printDebugInfo */
 
 /*****************************************************************************
@@ -590,6 +579,14 @@ void gameLoop() {
     #endif
     printDebugInfo();
     drawLabels();
+
+    if (overlayState)
+        DrawText(
+            TextFormat(
+                "%s", overlayTextInput
+            ),
+            panelX + 2, panelY + 2, 20, BLACK
+        );
     if (mouseMoving)
         DrawText("Mouse moving", 300, 20, 20, BLUE);
     EndDrawing();
